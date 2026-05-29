@@ -1,6 +1,6 @@
 import WalletContextProvider from '@/components/WalletContextProvider';
-import Header from '@/components/Header';
-import '@solana/wallet-adapter-react-ui/styles.css';
+import WalletContextProvider from '../components/WalletContextProvider';
+import Header from '../components/Header';
 
 export const metadata = { title: 'SolPass' };
 
