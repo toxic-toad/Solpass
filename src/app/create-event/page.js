@@ -13,11 +13,31 @@ export default function CreateEvent() {
   const [loading, setLoading] = useState(false);
   const [successMsg, setSuccessMsg] = useState('');
 
+  // Automatically downscale heavy mobile images to prevent 4.5MB Vercel payload crashes
   const handleImageChange = (e) => {
     const file = e.target.files[0];
     if (!file) return;
+
     const reader = new FileReader();
-    reader.onloadend = () => setImageBlob(reader.result);
+    reader.onload = (event) => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        const MAX_WIDTH = 600; // Constrain size for optimized web performance
+        const scaleSize = MAX_WIDTH / img.width;
+        
+        canvas.width = MAX_WIDTH;
+        canvas.height = img.height * scaleSize;
+
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+
+        // Convert to web-optimized JPEG string format
+        const dataUrl = canvas.toDataURL('image/jpeg', 0.7);
+        setImageBlob(dataUrl);
+      };
+      img.src = event.target.result;
+    };
     reader.readAsDataURL(file);
   };
 
@@ -25,9 +45,9 @@ export default function CreateEvent() {
     e.preventDefault();
     if (!publicKey) return alert('Connect your Solana wallet first');
     setLoading(true);
+    setSuccessMsg('');
 
     try {
-      // Automatic table initialization fallback wrapper
       const generatedId = 'ev-' + Math.random().toString(36).substring(2, 11);
 
       const { error } = await supabase.from('events').insert([{
@@ -40,17 +60,11 @@ export default function CreateEvent() {
         creator_address: publicKey.toString()
       }]);
 
-      if (error) {
-        // If table doesn't exist yet, we notify gracefully
-        if (error.message.includes('relation') || error.message.includes('missing')) {
-          throw new Error("Database table initializing. Please tap submit once more.");
-        }
-        throw error;
-      }
+      if (error) throw error;
       
       setSuccessMsg('Event published directly to the public ledger stream!');
     } catch (err) {
-      alert(err.message || 'Database sync error.');
+      alert(err.message || 'Database connection timeout.');
     } finally {
       setLoading(false);
     }
@@ -83,7 +97,7 @@ export default function CreateEvent() {
           <input type="file" accept="image/*" required style={{ width: '100%', color: '#94a3b8' }} onChange={handleImageChange} />
         </div>
         <button type="submit" disabled={loading} style={{ background: '#9333ea', padding: '0.75rem', color: '#fff', border: 'none', borderRadius: '0.375rem', fontWeight: 'bold', cursor: 'pointer' }}>
-          {loading ? 'Publishing Design...' : 'Publish Event Live'}
+          {loading ? 'Processing Design...' : 'Publish Event Live'}
         </button>
       </form>
 
