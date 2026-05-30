@@ -13,7 +13,7 @@ export default function CreateEvent() {
   const [loading, setLoading] = useState(false);
   const [successMsg, setSuccessMsg] = useState('');
 
-  // Automatically downscale heavy mobile images to prevent 4.5MB Vercel payload crashes
+  // Downscale image to a lightweight size before storing it in the database
   const handleImageChange = (e) => {
     const file = e.target.files[0];
     if (!file) return;
@@ -23,7 +23,7 @@ export default function CreateEvent() {
       const img = new Image();
       img.onload = () => {
         const canvas = document.createElement('canvas');
-        const MAX_WIDTH = 600; // Constrain size for optimized web performance
+        const MAX_WIDTH = 500; 
         const scaleSize = MAX_WIDTH / img.width;
         
         canvas.width = MAX_WIDTH;
@@ -32,8 +32,7 @@ export default function CreateEvent() {
         const ctx = canvas.getContext('2d');
         ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
 
-        // Convert to web-optimized JPEG string format
-        const dataUrl = canvas.toDataURL('image/jpeg', 0.7);
+        const dataUrl = canvas.toDataURL('image/jpeg', 0.6);
         setImageBlob(dataUrl);
       };
       img.src = event.target.result;
@@ -48,6 +47,7 @@ export default function CreateEvent() {
     setSuccessMsg('');
 
     try {
+      // Create a unique identifier for the event
       const generatedId = 'ev-' + Math.random().toString(36).substring(2, 11);
 
       const { error } = await supabase.from('events').insert([{
@@ -62,9 +62,9 @@ export default function CreateEvent() {
 
       if (error) throw error;
       
-      setSuccessMsg('Event published directly to the public ledger stream!');
+      setSuccessMsg('Success! Your event is live on the Explore marketplace feed.');
     } catch (err) {
-      alert(err.message || 'Database connection timeout.');
+      alert(err.message || 'Error communicating with database.');
     } finally {
       setLoading(false);
     }
@@ -108,5 +108,4 @@ export default function CreateEvent() {
       )}
     </main>
   );
-  }
-  
+}
